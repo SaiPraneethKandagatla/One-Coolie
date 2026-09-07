@@ -792,10 +792,11 @@ exports.login = async (req, res) => {
           .from('users')
           .select('*')
           .in('phone', phoneCandidates)
-          .maybeSingle();
+          .order('created_at', { ascending: false })
+          .limit(1);
 
         queryError = phoneErr;
-        user = phoneUser;
+        user = phoneUser?.[0] || null;
       }
     }
 
