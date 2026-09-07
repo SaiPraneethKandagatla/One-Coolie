@@ -87,6 +87,18 @@ export const AuthProvider = ({ children }) => {
     return data; // { message, email, accountExists, expiresInMinutes }
   };
 
+  const sendPhoneOtp = async (phone) => {
+    const { data } = await axios.post('/auth/otp/phone/send', { phone });
+    return data;
+  };
+
+  const verifyPhoneOtpLogin = async (phone, otp, role = 'passenger') => {
+    const { data } = await axios.post('/auth/otp/phone/verify-login', { phone, otp, role });
+    const userData = persistSession(data);
+    if (!userData) throw new Error('Login successful but session could not be created.');
+    return userData;
+  };
+
   // ============================================================
   // OTP: VERIFY & LOGIN
   // Verifies OTP for an existing user and creates a session.
@@ -546,7 +558,9 @@ export const AuthProvider = ({ children }) => {
         // OTP methods
         checkEmail,
         sendOtp,
+        sendPhoneOtp,
         verifyOtpLogin,
+        verifyPhoneOtpLogin,
         verifyOtpRegister
       }}
     >

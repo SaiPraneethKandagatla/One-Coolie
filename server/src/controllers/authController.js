@@ -2,7 +2,7 @@ const supabase = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { generateOtp, hashOtp, verifyOtp } = require('../utils/otpService');
-const { sendOtpEmail } = require('../utils/emailService');
+const { sendOtpEmail, sendOtpSms } = require('../utils/emailService');
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +30,26 @@ const generateToken = (id, role) => {
 const getOtpExpiryDate = () => {
   const minutes = parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10);
   return new Date(Date.now() + minutes * 60 * 1000);
+};
+
+const getPhoneCandidates = (value) => {
+  const digits = String(value || '').replace(/\D/g, '');
+  const tenDigits = digits.length === 12 && digits.startsWith('91')
+    ? digits.slice(2)
+    : digits;
+
+  return {
+    digits,
+    tenDigits,
+    candidates: [
+      String(value || '').trim(),
+      digits,
+      tenDigits,
+      `+91${tenDigits}`,
+      `+91 ${tenDigits}`,
+      `+${digits}`
+    ].filter(Boolean)
+  };
 };
 
 /*
@@ -165,6 +185,128 @@ exports.sendOtp = async (req, res) => {
     return res.status(500).json({
       message: 'Failed to send OTP. Please check your email and try again.'
     });
+  }
+};
+
+/* Send an SMS OTP for passwordless phone login. */
+exports.sendPhoneOtp = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const { digits, tenDigits, candidates } = getPhoneCandidates(phone);
+
+    if (tenDigits.length !== 10) {
+      return res.status(400).json({ message: 'A valid 10-digit mobile number is required.' });
+    }
+
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('id, phone, role')
+      .in('phone', candidates)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (userError) {
+      console.error('SEND PHONE OTP — USER LOOKUP ERROR:', userError);
+      return res.status(500).json({ message: 'Database error while checking the phone number.' });
+    }
+
+    const user = users?.[0];
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this phone number. Please register first.' });
+    }
+
+    const otp = generateOtp();
+    const otpHash = await hashOtp(otp);
+    const expiresAt = getOtpExpiryDate();
+
+    await supabase
+      .from('email_otps')
+      .update({ used: true })
+      .eq('email', `phone:${tenDigits}`)
+      .eq('purpose', 'login')
+      .eq('used', false);
+
+    const { error: insertError } = await supabase.from('email_otps').insert([{
+      email: `phone:${tenDigits}`,
+      otp_hash: otpHash,
+      purpose: 'login',
+      expires_at: expiresAt.toISOString(),
+      used: false,
+      attempts: 0
+    }]);
+
+    if (insertError) {
+      console.error('SEND PHONE OTP — INSERT ERROR:', insertError);
+      return res.status(500).json({ message: 'Failed to create the phone OTP.' });
+    }
+
+    try {
+      await sendOtpSms(`+91${tenDigits}`, otp, parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10));
+    } catch (smsError) {
+      await supabase.from('email_otps').update({ used: true }).eq('email', `phone:${tenDigits}`).eq('purpose', 'login').eq('otp_hash', otpHash);
+      console.error('PHONE OTP SMS DELIVERY FAILED:', smsError.message);
+      return res.status(503).json({ message: smsError.message });
+    }
+
+    return res.status(200).json({ message: 'OTP sent to your mobile number.', phone: `+91 ${tenDigits}` });
+  } catch (err) {
+    console.error('SEND PHONE OTP — SERVER ERROR:', err.message);
+    return res.status(500).json({ message: 'Server error while sending the phone OTP.' });
+  }
+};
+
+exports.verifyPhoneOtpLogin = async (req, res) => {
+  try {
+    const { phone, otp, role = 'passenger' } = req.body;
+    const { tenDigits } = getPhoneCandidates(phone);
+
+    if (tenDigits.length !== 10 || !/^\d{6}$/.test(String(otp || ''))) {
+      return res.status(400).json({ message: 'A valid phone number and 6-digit OTP are required.' });
+    }
+
+    const { data: otpRecords, error: otpError } = await supabase
+      .from('email_otps')
+      .select('*')
+      .eq('email', `phone:${tenDigits}`)
+      .eq('purpose', 'login')
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (otpError || !otpRecords?.length) {
+      return res.status(400).json({ message: 'OTP has expired or is invalid. Please request a new one.' });
+    }
+
+    const otpRecord = otpRecords[0];
+    if (otpRecord.attempts >= 5) {
+      await supabase.from('email_otps').update({ used: true }).eq('id', otpRecord.id);
+      return res.status(429).json({ message: 'Too many incorrect attempts. Please request a new OTP.' });
+    }
+
+    if (!await verifyOtp(String(otp), otpRecord.otp_hash)) {
+      await supabase.from('email_otps').update({ attempts: otpRecord.attempts + 1 }).eq('id', otpRecord.id);
+      return res.status(400).json({ message: 'Incorrect OTP.', attemptsRemaining: 4 - otpRecord.attempts });
+    }
+
+    await supabase.from('email_otps').update({ used: true }).eq('id', otpRecord.id);
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .in('phone', getPhoneCandidates(phone).candidates)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const user = users?.[0];
+    if (userError || !user) return res.status(401).json({ message: 'Invalid phone OTP login.' });
+    if (user.role !== role) return res.status(401).json({ message: `This account does not have ${role} access.` });
+    if (user.role === 'assistant' && user.is_approved !== true) return res.status(403).json({ message: 'Your assistant account is awaiting admin approval.' });
+
+    const token = generateToken(user.id, user.role);
+    return res.status(200).json({ ...user, _id: user.id, token, password: undefined });
+  } catch (err) {
+    console.error('VERIFY PHONE OTP — SERVER ERROR:', err.message);
+    return res.status(500).json({ message: 'Server error while verifying the phone OTP.' });
   }
 };
 

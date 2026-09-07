@@ -145,6 +145,8 @@ export default function AuthPage({ role = 'passenger' }) {
 
   // Form fields
   const [loginMethod, setLoginMethod] = useState('email'); // 'email' | 'phone'
+  const [phoneLoginStep, setPhoneLoginStep] = useState('phone'); // 'phone' | 'otp'
+  const [phoneLoginOtp, setPhoneLoginOtp] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPhone, setLoginPhone] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -167,7 +169,7 @@ export default function AuthPage({ role = 'passenger' }) {
   const [canResend, setCanResend] = useState(false);
   const [resendKey, setResendKey] = useState(0);
 
-  const { login, sendOtp, verifyOtpRegister } = useAuth();
+  const { login, sendOtp, sendPhoneOtp, verifyPhoneOtpLogin, verifyOtpRegister } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -216,6 +218,37 @@ export default function AuthPage({ role = 'passenger' }) {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     clearAlerts();
+
+    if (loginMethod === 'phone') {
+      const cleanDigits = loginPhone.replace(/\D/g, '');
+      if (cleanDigits.length !== 10) {
+        setError('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        if (phoneLoginStep === 'phone') {
+          const res = await sendPhoneOtp(cleanDigits);
+          setInfoMsg(res?.message || 'OTP sent to your mobile number.');
+          setPhoneLoginStep('otp');
+          setPhoneLoginOtp('');
+        } else {
+          if (phoneLoginOtp.length !== 6) {
+            setError('Please enter the 6-digit SMS OTP.');
+            return;
+          }
+          const userData = await verifyPhoneOtpLogin(cleanDigits, phoneLoginOtp, role);
+          setSignupStep('success');
+          setTimeout(() => navigate(`/dashboard${location.search || ''}`, { replace: true }), 900);
+        }
+      } catch (err) {
+        setError(err?.response?.data?.message || 'Unable to complete phone login. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     let identifier = '';
     if (loginMethod === 'phone') {
@@ -715,6 +748,8 @@ export default function AuthPage({ role = 'passenger' }) {
                     type="button"
                     onClick={() => {
                       setLoginMethod('email');
+                      setPhoneLoginStep('phone');
+                      setPhoneLoginOtp('');
                       clearAlerts();
                     }}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
@@ -730,6 +765,8 @@ export default function AuthPage({ role = 'passenger' }) {
                     type="button"
                     onClick={() => {
                       setLoginMethod('phone');
+                      setPhoneLoginStep('phone');
+                      setPhoneLoginOtp('');
                       clearAlerts();
                     }}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
@@ -793,8 +830,8 @@ export default function AuthPage({ role = 'passenger' }) {
                   </div>
                 )}
 
-                {/* Password Field */}
-                <div className="space-y-1">
+                {/* Password Field for email login; phone login uses SMS OTP. */}
+                {loginMethod === 'email' && <div className="space-y-1">
                   <div className="flex items-center gap-3 px-4 py-3 bg-zinc-50/70 hover:bg-white focus-within:bg-white border border-[#E3E8F0] focus-within:border-[#1463FF] focus-within:ring-4 focus-within:ring-[#1463FF]/10 rounded-2xl transition-all duration-200">
                     <Lock className="w-5 h-5 text-[#7C8494] shrink-0" />
                     <input
@@ -821,7 +858,30 @@ export default function AuthPage({ role = 'passenger' }) {
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
-                </div>
+                </div>}
+
+                {loginMethod === 'phone' && phoneLoginStep === 'otp' && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-zinc-50/70 border border-[#E3E8F0] focus-within:border-[#1463FF] focus-within:ring-4 focus-within:ring-[#1463FF]/10 rounded-2xl">
+                      <Phone className="w-5 h-5 text-[#7C8494] shrink-0" />
+                      <input
+                        id="phone-login-otp"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        autoComplete="one-time-code"
+                        placeholder="Enter 6-digit SMS OTP"
+                        value={phoneLoginOtp}
+                        onChange={(e) => setPhoneLoginOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        disabled={loading}
+                        className="w-full bg-transparent text-sm text-[#071A3D] placeholder:text-[#7C8494] outline-none font-medium tracking-[0.25em]"
+                      />
+                    </div>
+                    <button type="button" onClick={() => setPhoneLoginStep('phone')} className="text-xs font-semibold text-[#1463FF] hover:underline">
+                      Change number or resend OTP
+                    </button>
+                  </div>
+                )}
 
                 {/* Keep Me Signed In & Forgot Password */}
                 <div className="flex items-center justify-between text-xs text-[#7C8494] pt-0.5">
@@ -835,7 +895,7 @@ export default function AuthPage({ role = 'passenger' }) {
                     <span className="font-medium text-zinc-700">Keep me signed in</span>
                   </label>
 
-                  <button
+                  {loginMethod === 'email' && <button
                     type="button"
                     onClick={() => {
                       if (loginMethod === 'phone') {
@@ -855,7 +915,7 @@ export default function AuthPage({ role = 'passenger' }) {
                     className="font-semibold text-[#1463FF] hover:underline cursor-pointer"
                   >
                     Forgot password?
-                  </button>
+                  </button>}
                 </div>
 
                 {/* Primary CTA Button (Sign In ->) with Minimal Moving Train Loader */}
@@ -864,8 +924,9 @@ export default function AuthPage({ role = 'passenger' }) {
                   id="btn-login-submit"
                   disabled={
                     loading ||
-                    (loginMethod === 'email' ? !loginEmail.trim() : loginPhone.replace(/\D/g, '').length !== 10) ||
-                    !loginPassword
+                    (loginMethod === 'email'
+                      ? !loginEmail.trim() || !loginPassword
+                      : loginPhone.replace(/\D/g, '').length !== 10 || (phoneLoginStep === 'otp' && phoneLoginOtp.length !== 6))
                   }
                   className="w-full h-[54px] sm:h-[56px] px-6 rounded-[28px] bg-[#1463FF] hover:bg-[#0d52dd] active:scale-[0.99] text-white font-bold text-sm tracking-wide shadow-md shadow-[#1463FF]/25 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
@@ -873,7 +934,7 @@ export default function AuthPage({ role = 'passenger' }) {
                     <ButtonTrainLoader text="Signing In..." />
                   ) : (
                     <>
-                      <span>Sign In</span>
+                      <span>{loginMethod === 'phone' && phoneLoginStep === 'phone' ? 'Send SMS OTP' : 'Sign In'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

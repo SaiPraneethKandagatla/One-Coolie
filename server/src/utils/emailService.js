@@ -193,4 +193,33 @@ const sendOtpEmail = async (to, otp, expiryMinutes = 10) => {
   );
 };
 
-module.exports = { sendOtpEmail };
+const sendOtpSms = async (to, otp, expiryMinutes = 10) => {
+  if (!process.env.BREVO_API_KEY) {
+    throw new Error('BREVO_API_KEY is required for SMS OTP delivery.');
+  }
+
+  const response = await fetch('https://api.brevo.com/v3/transactionalSMS/sms', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      accept: 'application/json'
+    },
+    body: JSON.stringify({
+      sender: process.env.BREVO_SMS_SENDER || 'ONECOOLIE',
+      recipient: to,
+      content: `Your OneCoolie verification code is ${otp}. It expires in ${expiryMinutes} minutes. Never share this code.`,
+      type: 'transactional'
+    })
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || 'Brevo rejected the SMS request.');
+  }
+
+  console.log('BREVO SMS ACCEPTED:', { recipient: to, messageId: result.messageId || null });
+  return result;
+};
+
+module.exports = { sendOtpEmail, sendOtpSms };

@@ -9,7 +9,9 @@ const {
   login,
   seedTestUsers,
   sendOtp,
+  sendPhoneOtp,
   verifyOtpAndLogin,
+  verifyPhoneOtpLogin,
   verifyOtpAndRegister,
   checkEmail,
   updatePhoneNumber,
@@ -71,9 +73,11 @@ router.post('/otp/check-email', checkEmailLimiter, checkEmail);
 
 // Send OTP to email
 router.post('/otp/send', otpSendLimiter, sendOtp);
+router.post('/otp/phone/send', otpSendLimiter, sendPhoneOtp);
 
 // Verify OTP and log in existing user
 router.post('/otp/verify-login', otpVerifyLimiter, verifyOtpAndLogin);
+router.post('/otp/phone/verify-login', otpVerifyLimiter, verifyPhoneOtpLogin);
 
 // Verify OTP and register new user
 router.post('/otp/verify-register', otpVerifyLimiter, verifyOtpAndRegister);
