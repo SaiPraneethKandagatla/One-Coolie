@@ -191,19 +191,24 @@ exports.sendOtp = async (req, res) => {
 /* Send an SMS OTP for passwordless phone login. */
 exports.sendPhoneOtp = async (req, res) => {
   try {
-    const { phone } = req.body;
+    const { phone, purpose = 'login' } = req.body;
     const { digits, tenDigits, candidates } = getPhoneCandidates(phone);
 
+    if (!['login', 'signup'].includes(purpose)) {
+      return res.status(400).json({ message: 'Invalid phone OTP purpose.' });
+    }
     if (tenDigits.length !== 10) {
       return res.status(400).json({ message: 'A valid 10-digit mobile number is required.' });
     }
 
-    const { data: users, error: userError } = await supabase
-      .from('users')
-      .select('id, phone, role')
-      .in('phone', candidates)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    const { data: users, error: userError } = purpose === 'login'
+      ? await supabase
+        .from('users')
+        .select('id, phone, role')
+        .in('phone', candidates)
+        .order('created_at', { ascending: false })
+        .limit(1)
+      : { data: [], error: null };
 
     if (userError) {
       console.error('SEND PHONE OTP — USER LOOKUP ERROR:', userError);
@@ -211,25 +216,36 @@ exports.sendPhoneOtp = async (req, res) => {
     }
 
     const user = users?.[0];
-    if (!user) {
+    if (purpose === 'login' && !user) {
       return res.status(404).json({ message: 'No account found with this phone number. Please register first.' });
+    }
+
+    if (purpose === 'signup') {
+      const { data: existingUsers, error: existingError } = await supabase
+        .from('users')
+        .select('id')
+        .in('phone', candidates)
+        .limit(1);
+      if (existingError) return res.status(500).json({ message: 'Database error while checking the phone number.' });
+      if (existingUsers?.length) return res.status(409).json({ message: 'An account with this phone number already exists. Please sign in.' });
     }
 
     const otp = generateOtp();
     const otpHash = await hashOtp(otp);
     const expiresAt = getOtpExpiryDate();
+    const otpKey = `phone:${tenDigits}`;
 
     await supabase
       .from('email_otps')
       .update({ used: true })
-      .eq('email', `phone:${tenDigits}`)
-      .eq('purpose', 'login')
+      .eq('email', otpKey)
+      .eq('purpose', purpose)
       .eq('used', false);
 
     const { error: insertError } = await supabase.from('email_otps').insert([{
-      email: `phone:${tenDigits}`,
+      email: otpKey,
       otp_hash: otpHash,
-      purpose: 'login',
+      purpose,
       expires_at: expiresAt.toISOString(),
       used: false,
       attempts: 0
@@ -243,12 +259,12 @@ exports.sendPhoneOtp = async (req, res) => {
     try {
       await sendOtpSms(`+91${tenDigits}`, otp, parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10));
     } catch (smsError) {
-      await supabase.from('email_otps').update({ used: true }).eq('email', `phone:${tenDigits}`).eq('purpose', 'login').eq('otp_hash', otpHash);
+      await supabase.from('email_otps').update({ used: true }).eq('email', otpKey).eq('purpose', purpose).eq('otp_hash', otpHash);
       console.error('PHONE OTP SMS DELIVERY FAILED:', smsError.message);
       return res.status(503).json({ message: smsError.message });
     }
 
-    return res.status(200).json({ message: 'OTP sent to your mobile number.', phone: `+91 ${tenDigits}` });
+    return res.status(200).json({ message: purpose === 'signup' ? 'OTP sent to your mobile number.' : 'OTP sent to your mobile number.', phone: `+91 ${tenDigits}` });
   } catch (err) {
     console.error('SEND PHONE OTP — SERVER ERROR:', err.message);
     return res.status(500).json({ message: 'Server error while sending the phone OTP.' });
@@ -482,7 +498,8 @@ exports.verifyOtpAndRegister = async (req, res) => {
       password,
       role = 'passenger',
       station_code,
-      phone
+      phone,
+      otpChannel = 'email'
     } = req.body;
 
     if (!name || !email || !otp || !password || !role) {
@@ -504,6 +521,10 @@ exports.verifyOtpAndRegister = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const { tenDigits } = getPhoneCandidates(phone);
+    if (otpChannel === 'phone' && tenDigits.length !== 10) {
+      return res.status(400).json({ message: 'A valid phone number is required for phone OTP registration.' });
+    }
 
     // Validate role
     const allowedRoles = ['passenger', 'assistant'];
@@ -513,11 +534,12 @@ exports.verifyOtpAndRegister = async (req, res) => {
       });
     }
 
-    // Find the latest valid OTP for signup
+    // Find the latest valid OTP for signup, using the selected channel.
+    const otpLookupKey = otpChannel === 'phone' ? `phone:${tenDigits}` : normalizedEmail;
     const { data: otpRecords, error: otpError } = await supabase
       .from('email_otps')
       .select('*')
-      .eq('email', normalizedEmail)
+      .eq('email', otpLookupKey)
       .eq('purpose', 'signup')
       .eq('used', false)
       .gt('expires_at', new Date().toISOString())

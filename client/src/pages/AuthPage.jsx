@@ -336,8 +336,8 @@ export default function AuthPage({ role = 'passenger' }) {
 
     setLoading(true);
     try {
-      const res = await sendOtp(email, 'signup');
-      setInfoMsg(res?.message || `A 6-digit verification code has been sent to ${email}`);
+      const res = await sendPhoneOtp(cleanPhone, 'signup');
+      setInfoMsg(res?.message || `A 6-digit verification code has been sent to +91 ${cleanPhone}`);
       setCanResend(false);
       setResendKey((k) => k + 1);
       setOtpValue('');
@@ -379,7 +379,8 @@ export default function AuthPage({ role = 'passenger' }) {
         signupPassword,
         role,
         isA ? stationCode : undefined,
-        formattedPhone
+        formattedPhone,
+        'phone'
       );
 
       if (res?.token || res?.user?.token) {
@@ -415,8 +416,8 @@ export default function AuthPage({ role = 'passenger' }) {
     clearAlerts();
     setLoading(true);
     try {
-      const res = await sendOtp(signupEmail.trim().toLowerCase(), 'signup');
-      setInfoMsg(res?.message || 'A fresh verification code was sent to your email.');
+      const res = await sendPhoneOtp(signupPhone.replace(/\D/g, ''), 'signup');
+      setInfoMsg(res?.message || 'A fresh verification code was sent to your mobile number.');
       setCanResend(false);
       setResendKey((k) => k + 1);
       setOtpValue('');
@@ -691,7 +692,7 @@ export default function AuthPage({ role = 'passenger' }) {
                 {activeTab === 'login'
                   ? 'Welcome Back'
                   : signupStep === 'otp'
-                    ? 'Verify Email'
+                    ? 'Verify Mobile Number'
                     : isA
                       ? 'Create Assistant Account'
                       : 'Create Account'}
@@ -702,7 +703,7 @@ export default function AuthPage({ role = 'passenger' }) {
                     ? 'Sign in to manage your assistance requests.'
                     : 'Sign in to continue your journey with OneCoolie.'
                   : signupStep === 'otp'
-                    ? `Enter the 6-digit code sent to ${maskEmail(signupEmail)}`
+                    ? `Enter the 6-digit code sent to +91 ${signupPhone}`
                     : isA
                       ? 'Sign up to register as a verified station assistant.'
                       : 'Sign up to start your journey with OneCoolie.'}
@@ -1217,7 +1218,7 @@ export default function AuthPage({ role = 'passenger' }) {
               <div className="space-y-5 animate-fade-in-up">
                 <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl text-center">
                   <p className="text-xs text-blue-800 font-medium">
-                    Code sent to <span className="font-mono font-bold text-[#071A3D]">{signupEmail}</span>
+                    SMS code sent to <span className="font-mono font-bold text-[#071A3D]">+91 {signupPhone}</span>
                   </p>
                 </div>
 

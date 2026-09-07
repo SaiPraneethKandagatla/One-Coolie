@@ -87,8 +87,8 @@ export const AuthProvider = ({ children }) => {
     return data; // { message, email, accountExists, expiresInMinutes }
   };
 
-  const sendPhoneOtp = async (phone) => {
-    const { data } = await axios.post('/auth/otp/phone/send', { phone });
+  const sendPhoneOtp = async (phone, purpose = 'login') => {
+    const { data } = await axios.post('/auth/otp/phone/send', { phone, purpose });
     return data;
   };
 
@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }) => {
   // OTP: VERIFY & REGISTER
   // Verifies OTP for a new account and creates the user.
   // ============================================================
-  const verifyOtpRegister = async (name, email, otp, password, role, station_code, phone) => {
+  const verifyOtpRegister = async (name, email, otp, password, role, station_code, phone, otpChannel = 'email') => {
     try {
       const { data } = await axios.post('/auth/otp/verify-register', {
         name,
@@ -137,7 +137,8 @@ export const AuthProvider = ({ children }) => {
         password,
         role,
         station_code,
-        phone
+        phone,
+        otpChannel
       });
 
       // Assistant registration: no token until admin approves
