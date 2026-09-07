@@ -194,8 +194,33 @@ const sendOtpEmail = async (to, otp, expiryMinutes = 10) => {
 };
 
 const sendOtpSms = async (to, otp, expiryMinutes = 10) => {
+  if (process.env.MOCEAN_API_TOKEN) {
+    const response = await fetch('https://rest.moceanapi.com/rest/2/sms', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.MOCEAN_API_TOKEN}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        'mocean-from': process.env.MOCEAN_SENDER || 'MOCEAN',
+        'mocean-to': to.replace(/\D/g, ''),
+        'mocean-text': `Your OneCoolie verification code is ${otp}. It expires in ${expiryMinutes} minutes. Never share this code.`
+      })
+    });
+
+    const responseText = await response.text();
+    const messageId = responseText.match(/(?:message-id|messageId)[^>]*>([^<]+)/i)?.[1] || null;
+    const providerError = responseText.match(/(?:error-message|message)[^>]*>([^<]+)/i)?.[1] || responseText.slice(0, 240);
+    if (!response.ok) {
+      throw new Error(providerError || 'Mocean rejected the SMS request.');
+    }
+
+    console.log('MOCEAN SMS ACCEPTED:', { recipient: to, messageId });
+    return { messageId, raw: responseText };
+  }
+
   if (!process.env.BREVO_API_KEY) {
-    throw new Error('BREVO_API_KEY is required for SMS OTP delivery.');
+    throw new Error('MOCEAN_API_TOKEN or BREVO_API_KEY is required for SMS OTP delivery.');
   }
 
   const response = await fetch('https://api.brevo.com/v3/transactionalSMS/sms', {
