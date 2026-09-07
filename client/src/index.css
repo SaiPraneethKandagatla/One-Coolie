@@ -1,0 +1,753 @@
+/* ============================================================
+   RAILMITRA DESIGN SYSTEM
+   SWISS TYPOGRAPHY + APPLE-STYLE MINIMAL PRODUCT DESIGN
+   STRICT PALETTE: BLACK (#000000), WHITE (#FFFFFF), BLUE (#2563EB)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   DESIGN TOKENS & CSS VARIABLES
+   ============================================================ */
+:root {
+  /* Strict 3-Color System */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-blue: #2563eb;
+  --color-blue-hover: #1d4ed8;
+  --color-blue-tint: rgba(37, 99, 235, 0.08);
+  --color-blue-tint-strong: rgba(37, 99, 235, 0.16);
+  --color-blue-border: rgba(37, 99, 235, 0.25);
+
+  /* Light Theme Surfaces (Clean White & Subtle Neutral Tints) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+
+  --border-subtle: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --border-dark: #000000;
+
+  --text-primary: #000000;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  /* Shadows (Restrained, Apple-like soft depth) */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-floating: 0 12px 36px rgba(0, 0, 0, 0.08);
+  --shadow-blue-subtle: 0 8px 24px rgba(37, 99, 235, 0.20);
+
+  /* Radius Scale */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-base: 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================
+   DARK MODE TOKENS (Deep Black & Pure Blue)
+   ============================================================ */
+.dark {
+  color-scheme: dark;
+  --bg-primary: #000000;
+  --bg-secondary: #09090b;
+  --bg-tertiary: #121214;
+  --bg-card: #09090b;
+
+  --border-subtle: #27272a;
+  --border-medium: #3f3f46;
+  --border-dark: #ffffff;
+
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.7);
+  --shadow-floating: 0 16px 48px rgba(0, 0, 0, 0.9);
+}
+
+/* ============================================================
+   GLOBAL BASE STYLES
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+body,
+#root {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+/* Heading Hierarchy */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: inherit;
+  margin: 0;
+}
+
+/* ============================================================
+   ANIMATIONS (Subtle, 150-300ms, Apple-Style)
+   ============================================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-base) both;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp var(--transition-smooth) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--transition-base) both;
+}
+
+/* ============================================================
+   SWISS MONOCHROME BUTTON SYSTEM (Black & White, Minimalist)
+   ============================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #ffffff;
+  color: #000000 !important;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  padding: 11px 22px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #e4e4e7;
+  color: #000000 !important;
+  transform: translateY(-0.5px);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #ffffff;
+  color: #000000;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  box-shadow: var(--shadow-subtle);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--border-medium);
+  background-color: #fafafa;
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.btn-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #000000;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  box-shadow: var(--shadow-subtle);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.btn-black:hover:not(:disabled) {
+  background-color: #18181b;
+}
+
+.btn-black:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+/* ============================================================
+   INPUT SYSTEM
+   ============================================================ */
+.input-base {
+  width: 100%;
+  background-color: #ffffff;
+  color: #000000;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.input-base::placeholder {
+  color: var(--text-muted);
+}
+
+.input-base:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px var(--color-blue-tint);
+}
+
+.input-base:disabled {
+  background-color: #f8fafc;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   CARD UTILITIES (Clean Swiss Cards)
+   ============================================================ */
+.card-swiss {
+  background-color: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-subtle);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.card-swiss:hover {
+  border-color: var(--border-medium);
+}
+
+.card-swiss-dark {
+  background-color: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   BADGES (Pure Monochrome & Blue)
+   ============================================================ */
+.badge-blue,
+.badge-mono {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.badge-neutral {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000000;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.badge-black {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ============================================================
+   OTP INPUT
+   ============================================================ */
+.otp-display {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-align: center;
+  color: #000000;
+}
+
+/* ============================================================
+   CUSTOM SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ============================================================
+   CELEBRATION CONFETTI FALLING ANIMATION
+   ============================================================ */
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-20px) rotate(0deg) scale(0.8);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(140px) rotate(180deg) scale(1.1);
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translateY(320px) rotate(360deg) scale(0.5);
+    opacity: 0;
+  }
+}
+
+.animate-confetti-1 {
+  animation: confettiFall 2.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+.animate-confetti-2 {
+  animation: confettiFall 3.4s cubic-bezier(0.25, 1, 0.5, 1) 0.3s infinite;
+}
+
+.animate-confetti-3 {
+  animation: confettiFall 2.6s cubic-bezier(0.25, 1, 0.5, 1) 0.7s infinite;
+}
+
+.animate-confetti-4 {
+  animation: confettiFall 3.2s cubic-bezier(0.25, 1, 0.5, 1) 1.1s infinite;
+}
+
+.animate-confetti-5 {
+  animation: confettiFall 3.0s cubic-bezier(0.25, 1, 0.5, 1) 0.5s infinite;
+}
+
+/* ============================================================
+   ANIMATED BLACK TRAIN LOADER
+   High-performance GPU keyframes for realistic train motion
+   ============================================================ */
+@keyframes trainChug {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  25% {
+    transform: translateY(-2.5px) rotate(-0.3deg);
+  }
+
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  75% {
+    transform: translateY(-1.5px) rotate(0.3deg);
+  }
+}
+
+@keyframes wheelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes trackScroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-48px);
+  }
+}
+
+@keyframes smokePuff1 {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0.75;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: translate(-38px, -28px) scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes smokePuff2 {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+
+  100% {
+    transform: translate(-48px, -22px) scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes headlightBeam {
+
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scaleX(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(1.12);
+  }
+}
+
+@keyframes trainTraverse {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.animate-train-chug {
+  animation: trainChug 0.7s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.animate-wheel-spin {
+  animation: wheelSpin 0.65s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.animate-track-scroll {
+  animation: trackScroll 0.55s linear infinite;
+}
+
+.animate-smoke-1 {
+  animation: smokePuff1 1.4s ease-out infinite;
+}
+
+.animate-smoke-2 {
+  animation: smokePuff2 1.4s ease-out 0.45s infinite;
+}
+
+.animate-smoke-3 {
+  animation: smokePuff1 1.4s ease-out 0.9s infinite;
+}
+
+.animate-headlight {
+  animation: headlightBeam 1.8s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+.animate-train-traverse {
+  animation: trainTraverse 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes trainMoveNormal {
+  0% {
+    transform: translateX(-24px);
+    opacity: 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  85% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(136px);
+    opacity: 0;
+  }
+}
+
+.animate-train-move {
+  animation: trainMoveNormal 1.8s ease-in-out infinite;
+}
+
+@keyframes trainGlideSmooth {
+  0% {
+    transform: translateX(-70px);
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  88% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(190px);
+    opacity: 0;
+  }
+}
+
+.animate-train-glide {
+  animation: trainGlideSmooth 2.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes trainGlidePremium {
+  0% {
+    transform: translateX(-85px);
+    opacity: 0;
+  }
+
+  14% {
+    opacity: 1;
+  }
+
+  86% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(240px);
+    opacity: 0;
+  }
+}
+
+.animate-train-glide-premium {
+  animation: trainGlidePremium 3.8s cubic-bezier(0.35, 0, 0.25, 1) infinite;
+}
+
+@keyframes trainFloat {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+.animate-train-float {
+  animation: trainFloat 1.2s ease-in-out infinite;
+}
+
+@keyframes wheelSpinCalm {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-wheel-spin-calm {
+  animation: wheelSpinCalm 1.1s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes headlightSoft {
+
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scaleX(1);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scaleX(1.08);
+  }
+}
+
+.animate-headlight-soft {
+  animation: headlightSoft 2.4s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+@keyframes progressFlow {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  50% {
+    transform: translateX(20%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress-flow {
+  animation: progressFlow 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes trainTrackGlide {
+  0% {
+    transform: translateX(-40px);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(110px);
+    opacity: 0;
+  }
+}
+
+.animate-train-glide {
+  animation: trainTrackGlide 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

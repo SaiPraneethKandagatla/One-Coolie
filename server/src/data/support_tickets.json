@@ -1,0 +1,17 @@
+[
+  {
+    "id": "KZJ-SUP-9102",
+    "assistant_id": "sample-assistant-id",
+    "assistant_name": "Sai Coolie",
+    "assistant_phone": "+91 98480 22338",
+    "station": "KZJ",
+    "category": "Luggage Assistance Dispute",
+    "pnr": "2489012431",
+    "desc": "Passenger luggage exceeded 45kg; guidance provided for excess baggage tariff.",
+    "priority": "normal",
+    "status": "Resolved by Station Master",
+    "resolution_notes": "Station Master issued excess luggage receipt to passenger.",
+    "created_at": "2026-09-05T18:50:07.239Z",
+    "updated_at": "2026-09-05T19:50:07.241Z"
+  }
+]

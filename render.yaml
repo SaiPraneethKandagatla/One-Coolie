@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: onecoolie-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node src/index.js
+    plan: free
+    envVars:
+      - key: PORT
+        value: 5000

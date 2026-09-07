@@ -1,0 +1,11 @@
+{
+  "name": "onecoolie",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RailMitra / OneCoolie Platform",
+  "scripts": {
+    "postinstall": "npm --prefix server install",
+    "build": "npm --prefix server install",
+    "start": "node server/src/index.js"
+  }
+}
